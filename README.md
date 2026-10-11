@@ -16,9 +16,25 @@ from Safari. It works offline and saves your progress on the phone. No App Store
 
 Export a backup now and then; it's also how you move to a new phone.
 
-## What's different from the Claude version
-Groups and shared athlete cards need the Claude version's shared database, so the iPhone app
-hides the Groups tab. Everything else is the same.
+## Accounts (email + password)
+Signing in syncs your progress across devices and turns on Groups and shared athlete cards.
+Without an account the app still works and saves progress on the phone; Groups stay hidden.
+
+### One-time Firebase setup (free, about 5 minutes)
+1. Go to https://console.firebase.google.com → **Create a project** (Analytics not needed).
+2. **Build → Authentication → Get started → Sign-in method → Email/Password → Enable → Save.**
+3. **Authentication → Settings → Authorized domains → Add domain:** `im4creative.github.io`
+4. **Build → Firestore Database → Create database** → pick a location near you → **Start in production mode**.
+5. **Firestore → Rules:** replace everything with the contents of `firestore.rules` in this repo → **Publish**.
+6. **Project settings (gear) → Your apps → Web (</>)** → register an app named "CA Coach" (no hosting) →
+   copy the `firebaseConfig` values into `firebase-config.js` in this repo, like:
+   ```js
+   window.CAC_FIREBASE_CONFIG = { apiKey: "…", authDomain: "…", projectId: "…", storageBucket: "…", messagingSenderId: "…", appId: "…" };
+   ```
+   Commit that file (edit it right on GitHub). These values are meant to be public; the rules protect the data.
+
+The first time you sign in on a phone, anything you already saved on that phone moves into your account.
+Forgot your password? Tap **Forgot password?** on the sign-in screen for a reset email.
 
 ## Updating
 `src/coach.html` is the same file the Claude artifact runs. After changing it:

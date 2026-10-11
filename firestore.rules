@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // your profile, training log and custom workouts: only you
+    match /data/users/{uid}/{rest=**} { allow read, write: if me(uid); }
+
+    // names and athlete cards: every signed-in athlete can see them, only you can change yours
+    match /people/{uid}   { allow read: if signedIn(); allow write: if me(uid); }
+    match /athletes/{uid} { allow read: if signedIn(); allow write: if me(uid); }
+
+    // groups: any signed-in athlete can create and join; only the creator can delete
+    match /groups/{gid} {
+      allow read, create, update: if signedIn();
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      match /events/{eid} { allow read, write: if signedIn(); }
+    }
+
+    // the workout library ships inside the app; these stay read-only
+    match /workouts/{id}  { allow read: if signedIn(); }
+    match /movements/{id} { allow read: if signedIn(); }
+  }
+}

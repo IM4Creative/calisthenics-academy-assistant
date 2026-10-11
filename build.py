@@ -22,6 +22,8 @@ HEAD = """<!doctype html>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script>window.CAC_STANDALONE=true;window.CAC_VERSION="%s";</script>
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
 """ % ver
 
 TAIL = """

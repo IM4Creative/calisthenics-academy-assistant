@@ -1043,12 +1043,13 @@ nav.tabs .nav-home:not([aria-current="page"]) .nav-mark{opacity:.75;filter:grays
 .mq-row{display:flex;gap:8px;align-items:stretch}.mq-row .search{flex:1;min-width:0}.mq-row .mview{flex:none;grid-auto-columns:44px;padding:3px}.mq-row .mview button{min-height:38px;font-size:1.05rem;padding:0}
 .search{box-shadow:none;border:1px solid var(--rule)}
 
-html.standalone nav.tabs{grid-template-columns:repeat(4,1fr)}html.standalone nav.tabs button[data-tab="groups"]{display:none}
+html.standalone:not(.signed-in) nav.tabs{grid-template-columns:repeat(4,1fr)}html.standalone:not(.signed-in) nav.tabs button[data-tab="groups"]{display:none}
 html.standalone .wrap{padding-top:max(20px,calc(env(safe-area-inset-top) + 8px))}
 html.standalone body.home .wrap{padding-top:max(12px,env(safe-area-inset-top))}
 html.standalone body.home .remote{height:calc(100dvh - 112px - env(safe-area-inset-bottom,0px) - env(safe-area-inset-top,0px))}
 html.standalone .run{padding-top:max(16px,env(safe-area-inset-top))}
 html.standalone,html.standalone body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+.acct-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--panel2)}.acct-row span{flex:1;min-width:0;display:grid}.acct-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acct-row small{color:var(--muted);font-weight:600;font-size:.76rem}
 </style>
 
 <div class="wrap">
@@ -1076,7 +1077,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const norm=s=>String(s).toLowerCase().split(/\s+/).map(w=>w.replace(/s$/,"")).join(" ").replace(/[^a-z0-9]/g,"");
 const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
-try{S.mview=localStorage.getItem("ml-mview")||"gallery";const t=localStorage.getItem("ml-tab");if(window.CAC_STANDALONE&&S.tab==="groups")S.tab="home";if(t==="movements")S.wview="movements";const br=localStorage.getItem("ml-branch");if(br)S.branch=br;S.unit=localStorage.getItem("ml-unit")||"mi";if(!S.wview)S.wview=localStorage.getItem("ml-wview")||"workouts";const ws=localStorage.getItem("ml-wsort");if(ws)S.wsort=ws}catch(e){}
+try{S.mview=localStorage.getItem("ml-mview")||"gallery";const t=localStorage.getItem("ml-tab");if(t==="movements")S.wview="movements";const br=localStorage.getItem("ml-branch");if(br)S.branch=br;S.unit=localStorage.getItem("ml-unit")||"mi";if(!S.wview)S.wview=localStorage.getItem("ml-wview")||"workouts";const ws=localStorage.getItem("ml-wsort");if(ws)S.wsort=ws}catch(e){}
 const PIN_SVG=`<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15.5 2.5l6 6-2.4.7-3.6 3.6.6 4.8-1.6 1.6-4.2-4.2-5.6 5.6-1.1-1.1 5.6-5.6-4.2-4.2 1.6-1.6 4.8.6 3.6-3.6z"/></svg>`;
 
 /* flyer sequence: orange → amber → green → aqua → teal */
@@ -2452,6 +2453,7 @@ function settingsSheet(){
   const seg=(k,opts)=>`<div class="seg3" role="radiogroup">${opts.map(([v,l])=>`<button type="button" role="radio" data-pref="${k}" data-v="${v}" aria-checked="${PREF[k]===v}">${l}</button>`).join("")}</div>`;
   openSheet(panel("teal","Settings",`<div class="pbody stack" id="setBody">
     <div class="about"><span class="about-logo" data-logodl="1" role="button" tabindex="0" title="Download logo (PNG)" aria-label="Download the logo as a PNG">${logoSVG("")}</span><div style="flex:1"><b>Calisthenics Academy Coach</b><span>Move well. Move often.</span></div><button class="btn ghost" data-logodl="1" style="min-height:38px;padding:0 12px">⬇ PNG</button></div>
+    ${window.CAC_ACCOUNT?(()=>{const a=window.CAC_ACCOUNT();return `<div><div class="kicker" style="margin-bottom:8px">Account</div>${a.email?`<div class="acct-row"><span><b>${esc(a.email)}</b><small>Signed in · progress syncs to your account</small></span><button class="btn ghost" data-signout="1" style="min-height:40px">Sign out</button></div>`:`<div class="acct-row"><span><b>Not signed in</b><small>Progress saves only on this iPhone</small></span><button class="btn" data-signin="1" style="min-height:40px">Sign in</button></div>`}</div>`})():""}
     <div><div class="kicker" style="margin-bottom:8px">Theme</div>${seg("theme",[["auto","Auto"],["light","Light"],["dark","Dark"]])}</div>
     <div><div class="kicker" style="margin-bottom:8px">Accent color</div><div class="accents">${Object.entries(ACCENTS).map(([k,a])=>`<button type="button" class="acc" data-pref="accent" data-v="${k}" aria-checked="${PREF.accent===k}" style="background:${a[1]}" aria-label="${a[2]}"><span>${a[2]}</span></button>`).join("")}</div><div class="hint" style="margin-top:6px">Changes buttons, tabs and highlights. Meaning colors (progress, difficulty, branches) stay the same.</div></div>
     <div><div class="kicker" style="margin-bottom:8px">Text size</div>${seg("text",[["s","Small"],["m","Default"],["l","Large"],["xl","Extra large"]])}</div>
@@ -3221,6 +3223,8 @@ document.addEventListener("click",async e=>{
     const cb=$("#custBox");if(cb){cb.hidden=false;cb.querySelector(".cust-grid").outerHTML=custSteps(c)}const dd=$("#custDD");if(dd)dd.textContent=custDesc(c);const dt=$("#custDT");if(dt&&S.diffW)dt.textContent=custTotal(S.diffW);return}
   if(t.dataset.tset){return openTset()}
   if(t.dataset.exportdata){return exportData()}
+  if(t.dataset.signout){return window.CAC_SIGNOUT&&window.CAC_SIGNOUT()}
+  if(t.dataset.signin){return window.CAC_SIGNIN&&window.CAC_SIGNIN()}
   if(t.dataset.importdata){return pickImport()}
   if(t.dataset.tsetclose){return closeTset()}
   if(t.dataset.ttest){return testCues()}
@@ -3350,8 +3354,12 @@ let SEED={movements:[],workouts:[]};try{SEED=JSON.parse(document.getElementById(
   const sort=(a,b)=>a.name.localeCompare(b.name),byOrder=arr=>arr.slice().sort((a,b)=>(a.order??999)-(b.order??999)||sort(a,b));
   S.movements=byOrder(SEED.movements);S.library=byOrder(SEED.workouts);mergeWorkouts();S.wLoaded=true;
   let db=null,uid=null;
+  if(window.CAC_AUTH){/* iPhone app: Firebase account (email + password) stands in for Claude's db and user */
+    try{const a=await window.CAC_AUTH();if(a){db=a.db;USER=a.user;uid=a.uid;document.documentElement.classList.add("signed-in")}}catch(_){db=null;USER=null;uid=null}
+  }else{
   try{db=await window.claude?.use?.("db")}catch(_){db=null}
   try{USER=await window.claude?.use?.("user");uid=USER&&USER.id?await USER.id().catch(()=>null):null}catch(_){USER=null}
+  }
   let canW=!!(db&&uid);
   if(canW){try{const c=USER.can&&await USER.can("data.write");if(c===false)canW=false}catch(_){}}
   S.db=db||null;S.uid=uid||"local";S.pdb=canW?db:LocalDB();S.local=!!S.pdb.local;
