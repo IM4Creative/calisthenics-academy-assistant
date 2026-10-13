@@ -1050,6 +1050,9 @@ html.standalone body.home .remote{height:calc(100dvh - 112px - env(safe-area-ins
 html.standalone .run{padding-top:max(16px,env(safe-area-inset-top))}
 html.standalone,html.standalone body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 .acct-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--panel2)}.acct-row span{flex:1;min-width:0;display:grid}.acct-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acct-row small{color:var(--muted);font-weight:600;font-size:.76rem}
+.up-pick{display:flex;align-items:center;gap:16px;padding:12px;border-radius:16px;background:var(--panel2)}
+.up-pick .av-prev{flex:none}.up-side{display:grid;gap:4px;min-width:0}.up-side small{color:var(--muted);font-weight:600;font-size:.8rem}
+.up-acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.f .up-side b,.f .up-side small{text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--ink)}.f .up-side small{font-size:.8rem;color:var(--muted);font-weight:600}
 </style>
 
 <div class="wrap">
@@ -1653,7 +1656,7 @@ const AV_FONTS={mont:["Montserrat",900,"Bold",1,0],bebas:["Bebas Neue",400,"Tall
   ops:["Black Ops One",400,"Stencil",.95,1],bungee:["Bungee",400,"Block",.86,2],orbitron:["Orbitron",900,"Tech",.84,1],righteous:["Righteous",400,"Retro",1,1],
   playfair:["Playfair Display",900,"Serif",1,0],rubik:["Rubik Mono One",400,"Heavy",.78,1],press:["Press Start 2P",400,"Pixel",.56,1]};
 const fontOf=k=>AV_FONTS[k]||AV_FONTS.mont;
-const AV_FIELDS=["kind","icon","text","emoji","font","grad","c1","c2","ang","shape","ring","pat","fg","size","rot","glow"];
+const AV_FIELDS=["img","kind","icon","text","emoji","font","grad","c1","c2","ang","shape","ring","pat","fg","size","rot","glow"];
 const AV_SHAPES=[["circle","Circle"],["squircle","Rounded"],["hex","Hexagon"],["shield","Shield"],["burst","Burst"],["diamond","Diamond"]];
 const AV_RINGS=[["none","None"],["white","White"],["gold","Gold"],["ink","Ink"],["accent","Accent"],["double","Double"]];
 const AV_PATS=[["none","None"],["stripes","Stripes"],["dots","Dots"],["grid","Grid"],["rays","Rays"],["waves","Waves"],["rings","Rings"],["sparkle","Sparkle"],["split","Split"]];
@@ -1695,7 +1698,9 @@ function patBody(pat,id){
   return "";
 }
 function avSVG(avIn,name,seed,round,opts){
-  opts=opts||{};const av=avNorm(avIn,name,seed,round);const n=++AVN,gid="avg"+n,cid="avc"+n,pid="avp"+n,fid="avf"+n;
+  opts=opts||{};const av=avNorm(avIn,name,seed,round);
+  if(av.img&&/^data:image\/(jpeg|png|webp);base64,/.test(av.img)){const cid="avc"+(++AVN);
+    return `<svg ${opts.xmlns?'xmlns="http://www.w3.org/2000/svg" width="'+opts.xmlns+'" height="'+opts.xmlns+'"':""} viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="${cid}">${shapeEl(av.shape,"")}</clipPath></defs><image href="${av.img}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#${cid})"/></svg>`}const n=++AVN,gid="avg"+n,cid="avc"+n,pid="avp"+n,fid="avf"+n;
   const [c1,c2]=[av._cols[0],av._cols[av._cols.length-1]],mid=av._cols.length>2&&!av.c1?av._cols[1]:null,ink=av._ink;
   const ang=av.ang||"diag";
   const grad=ang==="radial"?`<radialGradient id="${gid}" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="${c2}"/>${mid?`<stop offset=".5" stop-color="${mid}"/>`:""}<stop offset="1" stop-color="${c1}"/></radialGradient>`
@@ -1726,48 +1731,32 @@ function userAv(uid,cls,g){
   return avHTML(av,S.names[uid]||"Member",cls,uid);
 }
 /* the studio: target "g" (group draft) or "u" (athlete draft) */
+/* profile & group picture: upload a photo, or fall back to initials on a color */
 function avPicker(t,d,name){
-  if(!d.size)d.size="m";if(!d.ang)d.ang="diag";
-  const tab=(S.avTab||{})[t]||"symbol",nm=name||"A";
-  const opt=(f,v,label,inner,cls)=>`<button type="button" class="av-opt ${cls||""}" data-avb="${t}|${f}|${esc(v)}" aria-pressed="${String(d[f]??"")===String(v)}" aria-label="${esc(label)}">${inner}</button>`;
-  const mini=over=>avHTML({...pickAv(d),...over},nm,"",d.seed);
-  const seg=(f,opts)=>`<div class="seg3">${opts.map(([v,l])=>`<button type="button" data-avb="${t}|${f}|${v}" aria-checked="${String(d[f]??opts[0][0])===String(v)}">${l}</button>`).join("")}</div>`;
-  if(d.kind==="emoji")d.kind="icon";
-  const kind=d.kind||(d.icon&&d.icon!=="letter"?"icon":"text");
-  let body="";
-  if(tab==="symbol"){
-    body=`${seg("kind",[["icon","Icon"],["text","Letters"]])}
-      ${kind==="icon"?`<div class="av-grid">${AV_ICONS.filter(k=>k!=="letter").map(k=>opt("icon",k,k,avIconSvg(k),"ic")).join("")}</div>`:""}
-      ${kind==="text"?`<label class="f">Up to 3 letters<input data-avin="${t}|text" maxlength="3" value="${esc(d.text||initialOf(nm))}" autocapitalize="characters" style="text-transform:uppercase;font-weight:900;letter-spacing:.1em;font-size:1.3rem;text-align:center"></label>
-        <div class="kicker">Font</div><div class="font-grid">${Object.entries(AV_FONTS).map(([k,F])=>`<button type="button" class="font-opt" data-avb="${t}|font|${k}" aria-pressed="${(d.font||"mont")===k}"><span class="fo-s" style="font-family:'${F[0]}',Montserrat,sans-serif;font-weight:${F[1]};font-size:${f2(1.45*Math.min(1.1,F[3]))}rem">${esc(avText(d,nm))}</span><small>${F[2]}</small></button>`).join("")}</div>`:""}
-      <div class="row2"><div><div class="kicker">Size</div>${seg("size",[["s","S"],["m","M"],["l","L"]])}</div><div><div class="kicker">Tilt</div><div class="dial-c"><button type="button" class="dk" data-avb="${t}|rot|-" data-d="-1" aria-label="Tilt left">↺</button><span class="dv num">${+d.rot||0}°</span><button type="button" class="dk" data-avb="${t}|rot|+" aria-label="Tilt right">↻</button></div></div></div>
-      <div><div class="kicker">Symbol color</div><div class="fg-row">${AV_FG.map(([v,l])=>`<button type="button" class="fg-chip" data-avb="${t}|fg|${v}" aria-checked="${(d.fg||"auto")===v}" style="--c:${v==="auto"?"linear-gradient(135deg,#fff 50%,#0F1113 50%)":v}">${l}</button>`).join("")}<label class="fg-chip custom" style="--c:${d.fg&&d.fg.startsWith("#")&&!AV_FG.some(x=>x[0]===d.fg)?d.fg:"conic-gradient(red,yellow,lime,cyan,blue,magenta,red)"}">Custom<input type="color" data-avin="${t}|fg" value="${d.fg&&d.fg.startsWith("#")?d.fg:"#ffffff"}"></label></div></div>`;
-  }else if(tab==="colors"){
-    body=`<div class="kicker">Presets</div><div class="av-grid">${AV_KEYS.map(k=>`<button type="button" class="av-opt" data-avb="${t}|grad|${k}" aria-pressed="${!d.c1&&(d.grad||hashKey(d.seed||nm,AV_KEYS))===k}" aria-label="${k}"><span class="sw" style="background:${AV_GRADS[k][0]}"></span></button>`).join("")}</div>
-      <div class="kicker">Custom blend</div>
-      <div class="blend"><label class="cpick"><input type="color" data-avin="${t}|c1" value="${d.c1||hexes(d.grad||"teal")[0]}"><span>Color 1</span></label><span class="blend-bar" style="background:linear-gradient(90deg,${d.c1||hexes(d.grad||"teal")[0]},${d.c2||hexes(d.grad||"teal").slice(-1)[0]})"></span><label class="cpick"><input type="color" data-avin="${t}|c2" value="${d.c2||hexes(d.grad||"teal").slice(-1)[0]}"><span>Color 2</span></label></div>
-      <div class="kicker">Direction</div>${seg("ang",[["diag","↘"],["down","↓"],["across","→"],["up","↗"],["radial","◎"]])}
-      ${d.c1?`<button type="button" class="link" data-avb="${t}|c1|">Back to presets</button>`:""}`;
-  }else if(tab==="shape"){
-    body=`<div class="kicker">Shape</div><div class="av-grid big">${AV_SHAPES.map(([v,l])=>opt("shape",v,l,mini({shape:v})+`<small>${l}</small>`,"lab")).join("")}</div>
-      <div class="kicker">Border</div><div class="av-grid big">${AV_RINGS.map(([v,l])=>opt("ring",v,l,mini({ring:v})+`<small>${l}</small>`,"lab")).join("")}</div>`;
-  }else{
-    body=`<div class="kicker">Pattern</div><div class="av-grid big">${AV_PATS.map(([v,l])=>opt("pat",v,l,mini({pat:v})+`<small>${l}</small>`,"lab")).join("")}</div>
-      <label class="tog"><span><b>Glow</b><small>A soft halo around the symbol</small></span><input type="checkbox" data-avin="${t}|glow" ${d.glow?"checked":""}><i aria-hidden="true"></i></label>`;
-  }
-  return `<div class="av-pick studio" id="avPick-${t}">
-    <div class="studio-top"><div class="av-prev" id="avPrev-${t}">${avHTML(pickAv(d),nm,"xl",d.seed)}</div>
-      <div class="studio-side"><div class="kicker">How it looks</div>
-        <div class="st-row">${avHTML(pickAv(d),nm,"",d.seed)}<span><b>${esc(nm)}</b><small>${t==="g"?"in your group list":"next to your name"}</small></span></div>
-        <div class="st-row"><span class="mchip">${avHTML(pickAv(d),nm,"xs",d.seed)}${esc(String(nm).split(" ")[0])}</span></div>
-        <div class="st-acts"><button type="button" class="mini-btn" data-avb="${t}|random|1">🎲 Surprise</button><button type="button" class="mini-btn" data-avb="${t}|reset|1">↺ Reset</button><button type="button" class="mini-btn" data-avb="${t}|png|1">⬇ PNG</button></div></div></div>
-    <div class="studio-tabs" role="tablist">${[["symbol","Symbol"],["colors","Colors"],["shape","Shape"],["effects","Effects"]].map(([k,l])=>`<button type="button" role="tab" data-avtab="${t}|${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>
-    <div class="studio-body">${body}</div>
+  const nm=name||"A",has=!!d.img;
+  return `<div class="av-pick up-pick" id="avPick-${t}">
+    <div class="av-prev" id="avPrev-${t}">${avHTML(pickAv(d),nm,"xl",d.seed)}</div>
+    <div class="up-side"><b>${has?"Looking good":"Add a photo"}</b><small>${t==="g"?"Shown in the group list and invites.":"Your groups see it next to your name."} Square photos work best.</small>
+      <div class="up-acts"><button type="button" class="btn" data-avup="${t}" style="min-height:42px">${has?"Change photo":"Upload photo"}</button>${has?`<button type="button" class="btn ghost" data-avclear="${t}" style="min-height:42px">Remove</button>`:""}</div></div>
   </div>`;
 }
+/* crop to a centered square and shrink to 128px so it stays small enough to share in groups */
+async function photoToAvatar(file){
+  if(!file||!/^image\//.test(file.type||"image/"))throw new Error("type");
+  const url=URL.createObjectURL(file);
+  try{const img=new Image();img.decoding="async";await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src=url});
+    const side=Math.min(img.naturalWidth,img.naturalHeight);if(!side)throw new Error("empty");
+    const N=128,c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");x.imageSmoothingQuality="high";
+    x.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,N,N);
+    return c.toDataURL("image/jpeg",.78)}finally{URL.revokeObjectURL(url)}
+}
+function pickPhoto(t){const i=document.createElement("input");i.type="file";i.accept="image/*";
+  i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;const d=avDraftOf(t);if(!d)return;
+    try{d.img=await photoToAvatar(f);d.kind="img";redrawAvPicker(t)}catch(_){toast("That photo couldn't be opened. Try a JPG or PNG.")}};
+  i.click()}
 function avDraftOf(t){return t==="g"?S.gdraft:S.udraft}
 function avNameOf(t){return t==="g"?(($("#gName")||{}).value||"Group"):myName()}
-function redrawAvPicker(t){const d=avDraftOf(t),el=$("#avPick-"+t);if(!d||!el)return;const sc=el.querySelector(".studio-body")?.scrollTop||0;el.outerHTML=avPicker(t,d,avNameOf(t))}
+function redrawAvPicker(t){const d=avDraftOf(t),el=$("#avPick-"+t);if(!d||!el)return;el.outerHTML=avPicker(t,d,avNameOf(t))}
 function refreshAvPreview(t){const d=avDraftOf(t),el=$("#avPick-"+t);if(!d||!el)return;const nm=avNameOf(t),av=pickAv(d);
   const pv=$("#avPrev-"+t);if(pv)pv.innerHTML=avHTML(av,nm,"xl",d.seed);const rows=el.querySelectorAll(".st-row");if(rows[0])rows[0].firstElementChild.outerHTML=avHTML(av,nm,"",d.seed);
   const ch=el.querySelector(".st-row .mchip");if(ch)ch.firstElementChild.outerHTML=avHTML(av,nm,"xs",d.seed);const bb=el.querySelector(".blend-bar");if(bb&&d.c1)bb.style.background=`linear-gradient(90deg,${d.c1},${d.c2||d.c1})`}
@@ -1815,15 +1804,15 @@ async function saveBlob(blob,name,okMsg){
   fallbackDL(blob,name);
 }
 function avatarSheet(){
-  const a=myAv()||{};S.udraft={...{kind:"icon",icon:"jack",grad:hashKey(S.uid,AV_KEYS),shape:"circle"},...a,seed:S.uid};S.udraft._orig={...S.udraft};
-  openSheet(panel("teal","Icon Studio",`<div class="pbody stack">${avPicker("u",S.udraft,myName())}</div>`),`<button class="btn go" data-avsave="1">Save Icon</button>`);
+  const a=myAv()||{};S.udraft={kind:"text",grad:a.grad||hashKey(S.uid,AV_KEYS),shape:"circle",...(a.img?{img:a.img,kind:"img"}:{}),seed:S.uid};
+  openSheet(panel("teal","Profile Photo",`<div class="pbody stack">${avPicker("u",S.udraft,myName())}</div>`),`<button class="btn go" data-avsave="1">Save</button>`);
 }
 async function saveAvatar(){
-  const av=pickAv(S.udraft);
+  const av={kind:"text",icon:"letter",img:null,...pickAv(S.udraft)};if(!av.img)av.img=null;
   try{await saveProfile({avatar:av})}catch(_){return toast("Couldn't save your icon. Try again.")}
   /* groups can't read your private profile, so copy the icon onto each group you belong to */
   await Promise.all(myGroups().map(g=>S.db.doc("groups/"+g.id).update({members:{[S.uid]:{av}}}).catch(()=>{})));
-  closeSheet();drawBadge();render();toast("Icon saved.");publishCard();
+  closeSheet();drawBadge();render();toast(av.img?"Photo saved.":"Photo removed.");publishCard();
 }
 const wSvg=w=>`<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${WICONS[wIconKey(w)]}</svg>`;
 function wThumb(w,opts={}){
@@ -1965,7 +1954,7 @@ function athletePanel(){
   const avg=n?S.logs.reduce((a,l)=>a+(+l.effort||0),0)/n:0;
   const dist={};S.logs.forEach(l=>{if(l.distance)dist[l.unit||"mi"]=(dist[l.unit||"mi"]||0)+l.distance});
   return panel("teal","Athlete",`<div class="pbody stack" style="gap:14px">
-    <div class="av-prev">${userAv(S.uid,"xl")}<div style="min-width:0;flex:1"><h2 style="margin:0">${esc(myName())}</h2><div class="hint">${myAv()?"Your groups see this icon.":"Pick an icon your groups will see."}</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn ghost" data-profedit="1" style="min-height:40px">Edit Profile</button><button class="btn ghost" data-settings="1" style="min-height:40px">⚙ Settings</button></div></div></div>
+    <div class="av-prev">${userAv(S.uid,"xl")}<div style="min-width:0;flex:1"><h2 style="margin:0">${esc(myName())}</h2><div class="hint">${myAv()&&myAv().img?"Your groups see this photo.":"Add a photo your groups will see."}</div><div class="row" style="margin-top:8px;gap:8px"><button class="btn ghost" data-profedit="1" style="min-height:40px">Edit Profile</button><button class="btn ghost" data-settings="1" style="min-height:40px">⚙ Settings</button></div></div></div>
     ${S.local?"":`<label class="share-tog"><input type="checkbox" data-sharestats="1" ${sharing()?"checked":""}><span><b>Share my athlete card</b><small>Others see your level, stats and badges. Notes stay private.</small></span></label>`}
     <div class="lvl-row"><div class="lvl-big" style="--p:${(LV.into/LV.need*100).toFixed(1)}%"><span><small>LEVEL</small><b>${LV.L}</b></span></div>
       <div style="min-width:0;flex:1"><div class="lvl-title">${titleOf(LV.L)}</div><div class="meter xp"><i style="width:${(LV.into/LV.need*100).toFixed(1)}%"></i></div>
@@ -2473,7 +2462,7 @@ function profileSheet(){
   const p=S.profile||{};S.pdraft={nick:p.nick||"",motto:p.motto||"",goal:p.goal||"",city:p.city||"",banner:p.banner||((myAv()||{}).grad)||"teal"};
   openSheet(panel("teal","My Profile",`<form class="pbody stack" id="profForm" autocomplete="off">
     <div class="prof-banner" id="profBanner" style="background:${bannerOf(S.pdraft.banner)}">${userAv(S.uid,"xl")}</div>
-    <button type="button" class="btn ghost" data-avedit="1" style="min-height:40px;justify-self:center">Change Icon</button>
+    <button type="button" class="btn ghost" data-avedit="1" style="min-height:40px;justify-self:center">${myAv()&&myAv().img?"Change photo":"Add photo"}</button>
     <label class="f">Display name<input id="pNick" maxlength="30" value="${esc(S.pdraft.nick)}" placeholder="${esc(S.names[S.uid]||"Your name")}"></label>
     <label class="f">Motto (optional)<input id="pMotto" maxlength="80" value="${esc(S.pdraft.motto)}" placeholder="e.g. One more rep"></label>
     <div class="f">Training goal${chipPick("goal",GOALS,S.pdraft.goal)}</div>
@@ -2533,10 +2522,11 @@ function eventSheet(gid,eid,keep){
 function groupForm(gid){
   const g=gid&&S.groups.find(x=>x.id===gid);
   S.gdraft={id:gid||null,privacy:g?g.privacy:"public",level:g?g.level||"All levels":"All levels",cover:g?g.cover||"":"",icon:g?g.icon||"letter":"letter",grad:g?g.grad||hashKey(g.id,AV_KEYS):AV_KEYS[Math.floor(Math.random()*AV_KEYS.length)],seed:gid||"",...(g&&g.av?g.av:{})};S.gdraft._orig={...S.gdraft};
+  {const gd=S.gdraft;["emoji","font","c1","c2","ang","ring","pat","fg","size","rot","glow","text"].forEach(k=>delete gd[k]);gd.icon="letter";gd.kind=gd.img?"img":"text"}
   openSheet(panel("teal",g?"Group Settings":"Create a Group",`<form class="pbody stack" id="gForm" autocomplete="off">
     <label class="f">Group name<input id="gName" required maxlength="60" value="${esc(g?g.name:"")}" placeholder="e.g. Hines Park Crew"></label>
     <label class="f">About (optional)<textarea id="gAbout" rows="2" maxlength="280" placeholder="Who it's for, when you usually train">${esc(g?g.about||"":"")}</textarea></label>
-    <details class="f studio-wrap" ${g?"":"open"}><summary>Group icon <span class="hint">Tap to design</span></summary>${avPicker("g",S.gdraft,g?g.name:"Group")}</details>
+    <div class="f"><span>Group photo</span>${avPicker("g",S.gdraft,g?g.name:"Group")}</div>
     <div class="f">Cover banner<div class="av-grid"><button type="button" class="av-opt ic" data-pick="cover" data-v="" aria-pressed="${!S.gdraft.cover}" aria-label="Match icon"><b style="font-size:.7rem">Match</b></button>${AV_KEYS.map(k=>`<button type="button" class="av-opt" data-pick="cover" data-v="${k}" aria-pressed="${S.gdraft.cover===k}" aria-label="${k}"><span class="g-av" style="background:${AV_GRADS[k][0]}"></span></button>`).join("")}</div></div>
     <label class="f">Tagline (optional)<input id="gTag" maxlength="70" value="${esc(g?g.tagline||"":"")}" placeholder="e.g. Bars, sweat and coffee after"></label>
     <div class="f">Skill level${chipPick("glevel",LEVELS,S.gdraft.level)}</div>
@@ -2585,7 +2575,7 @@ async function groupAction2(a,t,id){
   if(a==="gdelyes"){try{await S.db.doc("groups/"+id).delete();S.gDel=null;closeSheet();toast("Group deleted.")}catch(_){toast("Couldn't delete the group.")}return}
   if(a==="newcode"){try{const old=(S.groups.find(x=>x.id===id)||{}).code;await S.db.doc("groups/"+id).update({code:genCode()});toast("New invite link ready. The old one no longer works.");closeSheet();if(await waitFor(()=>{const g=S.groups.find(x=>x.id===id);return g&&g.code!==old}))groupSheet(id)}catch(_){toast("Couldn't reset the link.")}return}
   if(a==="gsave"){
-    const name=($("#gName")?.value||"").trim(),about=($("#gAbout")?.value||"").trim(),privacy=S.gdraft.privacy,icon=S.gdraft.icon||"letter",grad=S.gdraft.grad||"",gav=pickAv(S.gdraft),
+    const name=($("#gName")?.value||"").trim(),about=($("#gAbout")?.value||"").trim(),privacy=S.gdraft.privacy,icon=S.gdraft.icon||"letter",grad=S.gdraft.grad||"",gav=(()=>{const v={kind:"text",icon:"letter",...pickAv(S.gdraft)};if(!v.img)v.img=null;return v})(),
       extra={cover:S.gdraft.cover||"",tagline:($("#gTag")?.value||"").trim(),level:S.gdraft.level||"All levels",schedule:($("#gSched")?.value||"").trim(),spot:($("#gSpot")?.value||"").trim(),rules:($("#gRules")?.value||"").trim()};
     if(!name)return toast("Give the group a name.");
     try{
@@ -3261,6 +3251,8 @@ document.addEventListener("click",async e=>{
     return redrawAvPicker(tg)}
   if(t.dataset.avpick){const [tg,f,k]=t.dataset.avpick.split("|");const d=avDraftOf(tg);if(!d)return;d[f]=k;return redrawAvPicker(tg)}
   if(t.dataset.avedit){closeSheet();return avatarSheet()}
+  if(t.dataset.avup){return pickPhoto(t.dataset.avup)}
+  if(t.dataset.avclear){const d=avDraftOf(t.dataset.avclear);if(d){delete d.img;d.kind="text";d.icon="letter";redrawAvPicker(t.dataset.avclear)}return}
   if(t.dataset.avsave){t.disabled=true;await saveAvatar();t.disabled=false;return}
   if(t.dataset.quicklog){closeSheet();return quickLogSheet(t.dataset.quicklog,t.dataset.date)}
   if(t.dataset.qeff){S.qlEffort=+t.dataset.qeff;document.querySelectorAll("[data-qeff]").forEach(b=>{const on=+b.dataset.qeff===S.qlEffort;b.setAttribute("aria-pressed",on);b.style.background=on?effColor(S.qlEffort):""});$("#qlSave").disabled=false;return}
