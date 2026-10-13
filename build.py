@@ -29,8 +29,11 @@ HEAD = """<!doctype html>
 TAIL = """
 <script>
 if("serviceWorker" in navigator){addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(r=>{
-  r.addEventListener("updatefound",()=>{const w=r.installing;w&&w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller){try{toast("Update ready. Close and reopen the app to use it.")}catch(_){}}})});
-}).catch(()=>{})})}
+  r.update().catch(()=>{});
+}).catch(()=>{});
+  /* a new version took over: reload once so it runs right away */
+  let reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(reloaded)return;reloaded=true;location.reload()});
+})}
 </script>
 </body>
 </html>

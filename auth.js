@@ -142,7 +142,7 @@
             try { await M.auth.signInWithRedirect(FB.au, prov); return; } catch (e2) { e = e2; }
           }
           g.disabled = false;
-          msg(e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request" ? "" : (ERR[e.code] || "Google sign-in didn't finish. Try again or use email."), true);
+          msg(e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request" ? "" : (ERR[e.code] || ("Google sign-in didn't finish (" + (e.code || e.message || "unknown") + "). Try again or use email.")), true);
         }
       };
       $("#auSkip").onclick = () => { try { localStorage.setItem(SKIP, "1"); } catch (_) {} el.remove(); resolve(null); };
@@ -166,17 +166,22 @@
     });
   }
 
-  window.CAC_ACCOUNT = () => ({ email: CUR ? CUR.email : null });
+  let STATE = "starting", ERRMSG = "";
+  window.CAC_ACCOUNT = () => ({ email: CUR ? CUR.email : null, state: STATE, err: ERRMSG });
   window.CAC_SIGNOUT = async () => { try { await M.auth.signOut(FB.au); } catch (_) {} try { localStorage.removeItem(SKIP); } catch (_) {} location.reload(); };
   window.CAC_SIGNIN = () => { try { localStorage.removeItem(SKIP); } catch (_) {} location.reload(); };
   window.CAC_AUTH = async () => {
-    try { await withTimeout(load(), 10000); } catch (_) { return null; }   // offline on first launch: on-phone mode
+    STATE = "loading";
+    try { await withTimeout(load(), 15000); }
+    catch (e) { STATE = "error"; ERRMSG = (e && (e.message || e.code)) || String(e);   // offline or blocked: on-phone mode, but say so
+      setTimeout(() => { try { toast("Couldn't reach the sign-in service. Using this iPhone only for now."); } catch (_) {} }, 2500); return null; }
+    STATE = "ready";
     let redirErr = null; try { await M.auth.getRedirectResult(FB.au); } catch (e) { redirErr = e; }
     const u = await new Promise(r => { const off = M.auth.onAuthStateChanged(FB.au, x => { off(); r(x); }); });
     if (u) return finish(u, () => {});
     let skip = false; try { skip = !!localStorage.getItem(SKIP); } catch (_) {}
     if (skip) return null;
-    const sc = screen(); if (redirErr && redirErr.code) setTimeout(() => { const m = document.getElementById("auMsg"); if (m) { m.textContent = ERR[redirErr.code] || "Google sign-in didn't finish. Try again or use email."; m.classList.add("err"); } }, 60);
+    const sc = screen(); if (redirErr && redirErr.code) setTimeout(() => { const m = document.getElementById("auMsg"); if (m) { m.textContent = ERR[redirErr.code] || ("Google sign-in didn't finish (" + redirErr.code + "). Try again or use email."); m.classList.add("err"); } }, 60);
     return sc;
   };
 })();
