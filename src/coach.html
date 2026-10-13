@@ -1053,6 +1053,9 @@ html.standalone,html.standalone body{-webkit-tap-highlight-color:transparent;-we
 .up-pick{display:flex;align-items:center;gap:16px;padding:12px;border-radius:16px;background:var(--panel2)}
 .up-pick .av-prev{flex:none}.up-side{display:grid;gap:4px;min-width:0}.up-side small{color:var(--muted);font-weight:600;font-size:.8rem}
 .up-acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}.f .up-side b,.f .up-side small{text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--ink)}.f .up-side small{font-size:.8rem;color:var(--muted);font-weight:600}
+.invite-cta{appearance:none;border:0;display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:12px;width:100%;padding:12px 16px;border-radius:16px;background:var(--panel);box-shadow:0 0 0 1px var(--rule);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.invite-cta svg{width:26px;height:26px;color:var(--teal)}.invite-cta span{display:grid;gap:2px}.invite-cta b{font-size:1rem}.invite-cta small{color:var(--muted);font-weight:600;font-size:.8rem}
+.inv-list{margin-inline:-18px}
 </style>
 
 <div class="wrap">
@@ -2261,7 +2264,7 @@ function graph(ws){
 }
 
 /* ---------- groups & events ---------- */
-const APP_URL="https://claude.ai/artifact/AHYHT3mpdEodC1pTVi88cs";
+const APP_URL=window.CAC_STANDALONE?location.origin+location.pathname:"https://claude.ai/artifact/AHYHT3mpdEodC1pTVi88cs";
 const isMember=g=>!!(g&&g.members&&g.members[S.uid]);
 const memberIds=g=>Object.entries(g.members||{}).filter(([,v])=>v).map(([k])=>k);
 const myGroups=()=>S.groups.filter(isMember).sort((a,b)=>a.name.localeCompare(b.name));
@@ -2292,10 +2295,30 @@ function eventTeaser(){const e=upcoming(1)[0];if(!e||evDate(e)-Date.now()>7*864e
 function groupsNotice(){if(!(!S.db||S.local))return "";
   if(STANDALONE)return `<div class="gate-note"><b>Sign in to use Groups</b><span>Create a crew, join friends with an invite link, plan events and see each other's stats. Sign in with Google or your email; your workouts come with you.</span>${window.CAC_SIGNIN?`<button class="btn" data-signin="1" style="min-height:44px;justify-self:start">Sign in</button>`:""}</div>`;
   return `<div class="gate-note"><b>${!S.db?"Sign in to use Groups":"Want to join or start a group?"}</b><span>${!S.db?"Groups need a Claude sign-in. Your workouts and progress still save on this device.":"Claude only lets people the app owner has invited by email save shared data. Send the owner your email address and ask them to add you as an Editor. Your workouts and progress already save on this device."}</span>${S.db?`<button class="btn ghost" data-g="askjoin" style="min-height:40px;justify-self:start">Copy request message</button>`:""}</div>`}
+
+/* ---------- invite friends: share a group's invite link (or the app) through the phone's share sheet ---------- */
+function inviteText(g){return g?`Join my crew "${g.name}" on Calisthenics Academy Coach! Tap the link, sign in, and you're in.\nAlready have the app? Groups → Join with Code → ${g.code}`
+  :`Train with me on Calisthenics Academy Coach: skill tree, guided timer and a training log. Open it, sign in, and add it to your Home Screen.`}
+async function shareInvite(g){
+  const url=g?inviteLink(g):APP_URL,text=inviteText(g);
+  if(navigator.share){try{await navigator.share({title:g?`Join ${g.name}`:"Calisthenics Academy Coach",text,url});return}catch(e){if(e&&e.name==="AbortError")return}}
+  try{await navigator.clipboard.writeText(text+"\n"+url);toast("Invite copied. Paste it into a text or email.")}catch(_){toast("Copy this link: "+url)}
+}
+function inviteSheet(){
+  const mine=myGroups();
+  openSheet(panel("teal","Invite Friends",`<div class="pbody stack">
+    ${mine.length?`<div class="hint">Pick a group. Friends who open the link and sign in join right away.</div>
+    <div class="list inv-list">${mine.map(g=>`<div class="item" style="cursor:default">${gAv(g)}<div class="main"><h3>${esc(g.name)}</h3><div class="sub">${memberIds(g).length} member${memberIds(g).length===1?"":"s"} · code <b class="num">${esc(g.code||"")}</b></div></div><button class="btn" data-ginv="${esc(g.id)}" style="min-height:40px">Send</button></div>`).join("")}</div>`
+      :`<div class="empty" style="padding:8px 0"><h3>No group yet</h3>Create a group first to get an invite link, or share the app below.</div><button class="btn go" data-g="create">+ Create Group</button>`}
+    <button class="btn ghost" data-appshare="1">Share the app link</button>
+    <div class="hint">On iPhone the link opens in Safari. If your friend already has the app on their Home Screen, they can tap Groups → Join with Code and type the code instead.</div>
+  </div>`));
+}
 function viewGroups(){
   if(STANDALONE&&(!S.db||S.local))return `<div class="stack">${groupsNotice()}</div>`;
   const mine=myGroups(),pub=S.groups.filter(g=>g.privacy==="public"&&!isMember(g)).sort((a,b)=>memberIds(b).length-memberIds(a).length);
-  const actions=`<div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn go" data-g="create">+ Create Group</button><button class="btn ghost" data-g="code">Join with Code</button></div>`;
+  const actions=`<div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn go" data-g="create">+ Create Group</button><button class="btn ghost" data-g="code">Join with Code</button></div>
+    <button class="invite-cta" data-invite="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M19 8v6M16 11h6"/></svg><span><b>Invite friends</b><small>${mine.length?"Send an invite link to your group":"Share the app so friends can train with you"}</small></span></button>`;
   const up=upcoming(6);
   const evs=up.length?panel("teal","Upcoming Events",`<div class="list">${up.map(e=>evRow(e)).join("")}</div>`):"";
   const gRow=g=>{const n=memberIds(g).length,next=(S.events[g.id]||[]).find(e=>evDate(e)>=Date.now());
@@ -3215,6 +3238,9 @@ document.addEventListener("click",async e=>{
     const cb=$("#custBox");if(cb){cb.hidden=false;cb.querySelector(".cust-grid").outerHTML=custSteps(c)}const dd=$("#custDD");if(dd)dd.textContent=custDesc(c);const dt=$("#custDT");if(dt&&S.diffW)dt.textContent=custTotal(S.diffW);return}
   if(t.dataset.tset){return openTset()}
   if(t.dataset.exportdata){return exportData()}
+  if(t.dataset.invite){return inviteSheet()}
+  if(t.dataset.ginv){const g=S.groups.find(x=>x.id===t.dataset.ginv);if(g)return shareInvite(g);return}
+  if(t.dataset.appshare){return shareInvite(null)}
   if(t.dataset.signout){return window.CAC_SIGNOUT&&window.CAC_SIGNOUT()}
   if(t.dataset.signin){return window.CAC_SIGNIN&&window.CAC_SIGNIN()}
   if(t.dataset.importdata){return pickImport()}
