@@ -13,7 +13,7 @@
     const [app, auth, fs] = window.__CAC_FB_TEST ? window.__CAC_FB_TEST :
       await Promise.all([import(B + "firebase-app.js"), import(B + "firebase-auth.js"), import(B + "firebase-firestore.js")]);
     const a = app.initializeApp(cfg);
-    let au; try { au = auth.initializeAuth(a, { persistence: [auth.indexedDBLocalPersistence, auth.browserLocalPersistence] }); } catch (_) { au = auth.getAuth(a); }
+    let au; try { au = auth.initializeAuth(a, { persistence: [auth.indexedDBLocalPersistence, auth.browserLocalPersistence], popupRedirectResolver: auth.browserPopupRedirectResolver }); } catch (_) { au = auth.getAuth(a); }
     let db; try { db = fs.initializeFirestore(a, { ignoreUndefinedProperties: true, localCache: fs.persistentLocalCache() }); } catch (_) { db = fs.getFirestore(a); }
     FB = { a, au, db }; M = { app, auth, fs }; return M;
   }
