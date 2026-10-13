@@ -65,7 +65,12 @@
   }
   async function finish(u, note){
     CUR = u;
-    try { await M.fs.setDoc(M.fs.doc(FB.db, "people/" + u.uid), { name: u.displayName || (u.email || "").split("@")[0], email: u.email || "" }, { merge: true }); } catch (_) {}
+    try { await withTimeout(M.fs.setDoc(M.fs.doc(FB.db, "people/" + u.uid), { name: u.displayName || (u.email || "").split("@")[0], email: u.email || "" }, { merge: true }), 8000); }
+    catch (e) { /* tell the owner plainly when the Firebase setup is incomplete */
+      const w = e && e.code === "permission-denied" ? "Signed in, but the database rules block saving. Paste firestore.rules into Firestore → Rules and Publish."
+        : e && (e.code === "not-found" || e.code === "failed-precondition") ? "Signed in, but there's no Firestore database yet. Create one in the Firebase console."
+        : null;
+      if (w) setTimeout(() => { try { toast(w); } catch (_) { alert(w); } }, 2500); }
     await migrate(u, note);
     if (u.displayName) { try { const pr = M.fs.doc(FB.db, "data/users/" + u.uid + "/profile"), ps = await M.fs.getDoc(pr); if (!ps.exists() || !(ps.data() || {}).nick) await M.fs.setDoc(pr, { nick: u.displayName.split(" ")[0] }, { merge: true }); } catch (_) {} }
     return { db: adapter(), user: userObj(u), uid: u.uid };
