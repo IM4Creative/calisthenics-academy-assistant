@@ -1056,6 +1056,12 @@ html.standalone,html.standalone body{-webkit-tap-highlight-color:transparent;-we
 .invite-cta{appearance:none;border:0;display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:12px;width:100%;padding:12px 16px;border-radius:16px;background:var(--panel);box-shadow:0 0 0 1px var(--rule);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 .invite-cta svg{width:26px;height:26px;color:var(--teal)}.invite-cta span{display:grid;gap:2px}.invite-cta b{font-size:1rem}.invite-cta small{color:var(--muted);font-weight:600;font-size:.8rem}
 .inv-list{margin-inline:-18px}
+.pod-medal{font-size:4.5rem;line-height:1;filter:drop-shadow(0 6px 14px rgb(0 0 0 / .2))}
+@media (prefers-reduced-motion:no-preference){html:not([data-motion="off"]) .pod-medal{animation:podpop .8s cubic-bezier(.2,1.6,.4,1) both}}
+@keyframes podpop{0%{transform:scale(.2) rotate(-30deg);opacity:0}100%{transform:none;opacity:1}}
+.pod-bonus{font-weight:900;font-size:1.6rem;padding:6px 18px;border-radius:999px;background:var(--g-gold);color:#0F1113}
+.pod-ic{font-size:1.5rem;width:30px;text-align:center}
+.pod-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pod-row>span{display:grid;justify-items:center;padding:8px;border-radius:14px;background:var(--panel2)}.pod-row b{font-size:1.4rem;line-height:1}.pod-row .num{font-weight:900;font-size:1.1rem}.pod-row small{font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 </style>
 
 <div class="wrap">
@@ -1846,6 +1852,7 @@ function computeXP(){
   (S.tests||[]).forEach(t=>{if(PASS.has(t.id))xp+=t.testOf==="final"?XPC.final:XPC.test;if(isGold(t))xp+=XPC.gold});
   FACTS=athleteFacts();EARNED=new Set(ACH.filter(a=>{const [h,n]=a.p(FACTS);return h>=n}).map(a=>a.id));
   ACH.forEach(a=>{if(EARNED.has(a.id))xp+=TIER_XP[a.t]});
+  Object.values((S.profile&&S.profile.podium)||{}).forEach(m=>{xp+=PODIUM_XP[m]||0});
   return xp;
 }
 const wkKey=iso=>{const [y,m,d]=iso.split("-").map(Number);const t=new Date(y,m-1,d);t.setDate(t.getDate()-((t.getDay()+6)%7));return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`};
@@ -1964,6 +1971,7 @@ function athletePanel(){
       <div class="hint" style="margin-top:6px"><b class="num">${LV.into.toLocaleString()}</b> / <span class="num">${LV.need.toLocaleString()}</span> XP to Level ${LV.L+1} · <span class="num">${LV.total.toLocaleString()}</span> XP total</div></div></div>
     <div class="stats"><div class="stat"><b>${n}</b><span>Completed</span></div><div class="stat"><b>${hrs?`${hrs}h ${mins}m`:`${mins}m`}</b><span>Trained</span></div><div class="stat"><b>${streak()}</b><span>Day streak</span></div></div>
     <div class="stats"><div class="stat"><b>${tw.filter(isUnlocked).length}<small style="font-size:.6em;color:var(--muted)">/${tw.length}</small></b><span>Unlocked</span></div><div class="stat"><b style="font-size:.92rem;padding-block:.45rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${favBranch?esc(favBranch[0]):"—"}</b><span>Top branch</span></div><div class="stat"><b>${Object.keys(dist).length?Object.entries(dist).map(([u,v])=>`${Math.round(v*10)/10}<small style="font-size:.55em"> ${u}</small>`).join(" "):n?avg.toFixed(1):"—"}</b><span>${Object.keys(dist).length?"Cardio distance":"Avg effort"}</span></div></div>
+    ${podHTML(podiumCounts())}
     ${vizHTML(myCard())}
     <div><div class="kicker" style="margin-bottom:6px">Favorite workouts</div>${fav.length?`<div class="list fav">${fav.map((f,i)=>`<button class="item" ${WMAP[f.id]?`data-open-workout="${esc(f.id)}"`:"disabled"}><span class="medal m${i}">${i+1}</span><div class="main"><h3>${esc(f.name)}</h3><div class="sub">Completed ${f.n}× · avg effort ${(f.sum/f.n).toFixed(1)}</div></div><span class="end num">${f.n}×</span></button>`).join("")}</div>`:`<div class="hint">Complete a few workouts and your favorites show up here.</div>`}</div>
     ${(()=>{const F=FACTS,recent=ACH.filter(a=>EARNED.has(a.id)).slice(-6).reverse(),next=ACH.filter(a=>!EARNED.has(a.id)).map(a=>{const [hv,nd]=a.p(F);return {a,r:hv/nd}}).sort((x,y)=>y.r-x.r).slice(0,Math.max(0,6-recent.length)).map(x=>x.a);
@@ -2326,8 +2334,8 @@ function viewGroups(){
   const minePanel=panel("teal",`My Groups · ${mine.length}`,mine.length?`<div class="list">${mine.map(gRow).join("")}</div>`:`<div class="empty"><h3>You're not in a group yet</h3>Create one for your crew, join a public group below, or open an invite link someone sent you.</div>`);
   const disc=panel("teal","Discover Public Groups",pub.length?`<div class="list">${pub.map(g=>`<div class="item" style="cursor:default">${gAv(g)}<div class="main"><h3>${esc(g.name)}</h3><div class="sub">${esc(g.about||"")}${g.about?" · ":""}${memberIds(g).length} members</div></div><button class="btn" data-gjoin="${esc(g.id)}" style="min-height:40px">Join</button></div>`).join("")}</div>`:`<div class="empty">No other public groups yet.</div>`);
   const all=Object.keys(S.athletes||{});if(all.length)resolveNames(all);
-  const everyone=all.length?panel("gold",`All Athletes · ${all.length}`,boardHTML(all,null)+`<div class="pbody" style="padding-top:8px"><div class="hint">Everyone using the app who shares stats, ranked by XP this week. Tap anyone to see their profile.</div></div>`):"";
-  return `<div class="stack">${groupsNotice()}${actions}${evs}${minePanel}${everyone}${disc}</div>`;
+  const everyone=all.length?panel("gold",`All Athletes · ${all.length}`,boardHTML(all,null)+`<div class="pbody" style="padding-top:8px"><div class="hint">Everyone who shares stats, ranked by workout XP this week. When the week ends, the top 3 earn bonus XP: Gold +300, Silver +200, Bronze +100.</div></div>`):"";
+  return `<div class="stack">${groupsNotice()}${actions}${evs}${minePanel}${podiumPanel()}${everyone}${disc}</div>`;
 }
 /* ---------- shared athlete cards: a public summary each person publishes so groups can see stats ---------- */
 const sharing=()=>S.profile&&S.profile.shareStats!==false;
@@ -2340,6 +2348,8 @@ function myCard(){
   return {L:LV.L,xp:XP,title:titleOf(LV.L),streak:streak(),best:FACTS.best||0,sessions:S.logs.length,mins:Math.round(S.logs.reduce((a,l)=>a+logSecs(l),0)/60),
     badges:EARNED.size,unlocked:S.workouts.filter(w=>w.branch&&w.branch!=="Custom"&&isUnlocked(w)).length,tests:PASS.size,fav:fav?fav[0]:"",
     week:{k:wk,n:wl.length,xp:Object.entries(DAYXP).filter(([d])=>wkKey(d)===wk).reduce((a,[,v])=>a+v,0),mins:Math.round(wl.reduce((a,l)=>a+logSecs(l),0)/60)},
+    prev:(()=>{const pk=lastWkKey();return {k:pk,xp:Object.entries(DAYXP).filter(([d])=>wkKey(d)===pk).reduce((a,[,v])=>a+v,0)}})(),
+    pod:podiumCounts(),
     recent,av:myAv()||null,
     into:LV.into,need:LV.need,total:S.workouts.filter(w=>w.branch&&w.branch!=="Custom").length,added:S.workouts.filter(w=>(w.branch||"Custom")==="Custom").length,
     avgEff:S.logs.length?Math.round(S.logs.reduce((a,l)=>a+(+l.effort||0),0)/S.logs.length*10)/10:0,
@@ -2412,6 +2422,45 @@ function publishCard(){
 const cardOf=uid=>uid===S.uid&&!S.local?(sharing()?myCard():null):(S.athletes||{})[uid]||null;
 const curWeek=c=>c&&c.week&&c.week.k===wkKey(todayISO())?c.week:{n:0,xp:0,mins:0};
 const ago=iso=>{const d=daysAgo(iso);return d<=0?"today":d===1?"yesterday":d<7?`${d} days ago`:fmtDate(iso,{month:"short",day:"numeric"})};
+
+/* ---------- athlete of the week: last week's top 3 by workout XP earn a bonus ---------- */
+const PODIUM=[["gold","Gold",300,"🥇"],["silver","Silver",200,"🥈"],["bronze","Bronze",100,"🥉"]];
+const PODIUM_XP={gold:300,silver:200,bronze:100};
+function lastWkKey(){const [y,m,d]=todayISO().split("-").map(Number);const x=new Date(y,m-1,d-7);return wkKey(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`)}
+const weekXPOf=(c,k)=>!c?0:c.week&&c.week.k===k?(c.week.xp||0):c.prev&&c.prev.k===k?(c.prev.xp||0):0;
+function podiumCounts(){const o={gold:0,silver:0,bronze:0};Object.values((S.profile&&S.profile.podium)||{}).forEach(m=>{if(m in o)o[m]++});return o}
+/* standard competition ranking: ties share a medal; nobody with 0 XP places */
+function podiumFor(k){
+  const ids=new Set(Object.keys(S.athletes||{}));if(!S.local&&sharing())ids.add(S.uid);
+  const rows=[...ids].map(id=>({id,xp:weekXPOf(cardOf(id),k)})).filter(r=>r.xp>0).sort((a,b)=>b.xp-a.xp);
+  let place=0;return rows.map((r,i)=>{if(i===0||r.xp<rows[i-1].xp)place=i;return {...r,place}}).filter(r=>r.place<3).map(r=>({...r,medal:PODIUM[r.place][0]}));
+}
+async function checkPodium(){
+  if(S.local||!S.db||!S.uid||!S.ready||!S.lLoaded||!S.athLoaded||S.podChecking)return;
+  const k=lastWkKey(),done=(S.profile&&S.profile.podium)||{};if(k in done||!sharing())return;
+  if(!Object.keys(S.athletes||{}).length)return;
+  S.podChecking=true;
+  try{const me=podiumFor(k).find(r=>r.id===S.uid),medal=me?me.medal:"none";
+    await saveProfile({podium:{...done,[k]:medal}});
+    if(me){render();podiumSheet(me,k)}publishCard();
+  }catch(_){}finally{S.podChecking=false}
+}
+function podiumSheet(me,k){
+  const P=PODIUM.find(x=>x[0]===me.medal);
+  if(!RM())setTimeout(()=>burst(me.medal==="gold"?["#F2B630","#FFE38A","#E8A317","#FFFFFF"]:me.medal==="silver"?["#9AA6AF","#E6ECF0","#FFFFFF","#5CE1E6"]:["#C97B3E","#F2B48A","#FFFFFF","#FFBD59"],80),200);
+  try{ensureAC();tone(784,0,.18);tone(988,.16,.18);tone(1319,.32,.4)}catch(_){}
+  openSheet(panel("gold","Athlete of the Week",`<div class="pbody stack" style="text-align:center;justify-items:center">
+    <div class="pod-medal ${me.medal}">${P[3]}</div><h2>${P[1]} · Week of ${esc(fmtDate(k))}</h2>
+    <div class="hint">You finished ${me.place===0?"first":me.place===1?"second":"third"} with <b class="num">${me.xp.toLocaleString()}</b> workout XP.</div>
+    <div class="pod-bonus">+${P[2]} XP</div></div>`),`<button class="btn go" data-close>Let's go</button>`);
+}
+const podHTML=p=>p&&(p.gold||p.silver||p.bronze)?`<div class="pod-row" title="Athlete of the Week finishes">${PODIUM.map(([k,l,,e])=>`<span><b>${e}</b><span class="num">${p[k]||0}</span><small>${l}</small></span>`).join("")}</div>`:"";
+function podiumPanel(){
+  const k=lastWkKey(),pod=podiumFor(k);if(!pod.length)return "";
+  return panel("gold",`Last week's podium`,`<div class="list board">${pod.map(r=>{const P=PODIUM[r.place];return `<button class="item" data-member="${esc(r.id)}"><span class="pod-ic">${P[3]}</span>
+    <div class="main" style="display:flex;align-items:center;gap:10px;min-width:0">${userAv(r.id,"xs round")}<div style="min-width:0"><h3>${esc(nameOf(r.id))}</h3><div class="sub">${P[1]} · +${P[2]} bonus XP</div></div></div>
+    <span class="end num"><b>${r.xp.toLocaleString()}</b><small>XP</small></span></button>`}).join("")}</div>`);
+}
 function boardHTML(ids,g){
   const rows=ids.map(id=>({id,c:cardOf(id)})).filter(r=>r.c);
   if(!rows.length)return `<div class="empty">No shared stats yet. Stats appear after members train.</div>`;
@@ -2445,7 +2494,7 @@ function memberSheet(uid,gid){
     <div class="stats"><div class="stat"><b>${w.n}</b><span>This week</span></div><div class="stat"><b>${(w.xp||0).toLocaleString()}</b><span>Week XP</span></div><div class="stat"><b>${c.tests||0}</b><span>Tests passed</span></div></div>
     ${c.total!=null?`<div class="stats"><div class="stat"><b>${c.unlocked||0}<small style="font-size:.6em;color:var(--muted)">/${c.total}</small></b><span>Unlocked</span></div><div class="stat"><b>${c.added||0}</b><span>Workouts added</span></div><div class="stat"><b>${c.avgEff||"—"}</b><span>Avg effort</span></div></div>
     <div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b style="font-size:1.1rem;padding-block:.25rem">${esc(c.fav||"—")}</b><span>Favorite branch</span></div><div class="stat"><b style="font-size:1.1rem;padding-block:.25rem">${esc(c.dist||"—")}</b><span>Cardio distance</span></div></div>`:""}
-    ${vizHTML(c)}
+    ${podHTML(c.pod)}${vizHTML(c)}
     ${(c.favs||[]).length?`<div><div class="kicker" style="margin-bottom:6px">Favorite workouts</div><div class="list fav">${c.favs.map((f,i)=>`<button class="item" ${WMAP[f.id]?`data-open-workout="${esc(f.id)}"`:"disabled"}><span class="medal m${i}">${i+1}</span><div class="main"><h3>${esc(f.name)}</h3><div class="sub">Completed ${f.n}× · avg effort ${f.avg}</div></div><span class="end num">${f.n}×</span></button>`).join("")}</div></div>`:""}
     ${c.earned?(()=>{const got=ACH.filter(a=>c.earned.includes(a.id));const show=got.slice(-12).reverse();return `<div><div class="kicker" style="margin-bottom:8px">Badges · ${got.length}/${ACH.length}</div>${show.length?`<div class="badge-grid">${show.map(a=>`<button class="badge-cell" data-badge="${a.id}">${medal(a,true)}<span class="bn">${esc(a.n)}</span><span class="bp">Earned</span></button>`).join("")}</div>${got.length>12?`<div class="hint" style="margin-top:6px">+${got.length-12} more badges</div>`:""}`:`<div class="hint">No badges yet.</div>`}</div>`})():""}
     ${c.recs?`<div><div class="kicker" style="margin-bottom:8px">Personal records</div><div class="records">
@@ -3392,7 +3441,7 @@ let SEED={movements:[],workouts:[]};try{SEED=JSON.parse(document.getElementById(
     db.collection("movements").onSnapshot(s=>{if(s.docs.length)S.movements=byOrder(s.docs.map(d=>({id:d.id,...d.data()})));settle()},()=>{settle()});
     db.collection("workouts").onSnapshot(s=>{if(s.docs.length){S.library=byOrder(s.docs.map(d=>({id:d.id,...d.data()})));mergeWorkouts()}settle()},()=>{settle()});
     db.collection("groups").onSnapshot(s=>{S.groups=s.docs.map(d=>({id:d.id,...d.data()}));syncEventSubs();settle();setTimeout(checkInviteHash,300)},()=>{S.groups=[];settle()});
-    db.collection("athletes").onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]=d.data());S.athletes=m;if(S.tab==="groups"||S.sheetCtx)render();if(S.sheetCtx&&["group","member"].includes(S.sheetCtx.type))refreshSheet()},()=>{});
+    db.collection("athletes").onSnapshot(s=>{const m={};s.docs.forEach(d=>m[d.id]=d.data());S.athletes=m;if(!S.athLoaded){S.athLoaded=true;setTimeout(checkPodium,2500)}if(S.tab==="groups"||S.sheetCtx)render();if(S.sheetCtx&&["group","member"].includes(S.sheetCtx.type))refreshSheet()},()=>{});
   }else{settle();settle();S.groups=[];settle()}
   myWRef().onSnapshot(s=>{S.custom=s.docs.map(d=>({id:d.id,...d.data()})).sort(sort);mergeWorkouts();render()},onErr);
   profileRef().onSnapshot(s=>{S.profile=s.exists?{...s.data()}:{};S.plan=S.profile.plan||null;settle()},onErr);
