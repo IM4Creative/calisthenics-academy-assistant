@@ -12,7 +12,7 @@
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<script>window.CAC_STANDALONE=true;window.CAC_VERSION="0483bfac70";</script>
+<script>window.CAC_STANDALONE=true;window.CAC_VERSION="af9500bb46";</script>
 <script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <title>Calisthenics Academy Coach</title>
@@ -1060,7 +1060,7 @@ nav.tabs .nav-home:not([aria-current="page"]) .nav-mark{opacity:.75;filter:grays
 .mq-row{display:flex;gap:8px;align-items:stretch}.mq-row .search{flex:1;min-width:0}.mq-row .mview{flex:none;grid-auto-columns:44px;padding:3px}.mq-row .mview button{min-height:38px;font-size:1.05rem;padding:0}
 .search{box-shadow:none;border:1px solid var(--rule)}
 
-html.standalone:not(.signed-in) nav.tabs{grid-template-columns:repeat(4,1fr)}html.standalone:not(.signed-in) nav.tabs button[data-tab="groups"]{display:none}
+html.standalone.no-auth nav.tabs{grid-template-columns:repeat(4,1fr)}html.standalone.no-auth nav.tabs button[data-tab="groups"]{display:none}
 html.standalone .wrap{padding-top:max(20px,calc(env(safe-area-inset-top) + 8px))}
 html.standalone body.home .wrap{padding-top:max(12px,env(safe-area-inset-top))}
 html.standalone body.home .remote{height:calc(100dvh - 112px - env(safe-area-inset-bottom,0px) - env(safe-area-inset-top,0px))}
@@ -1827,7 +1827,7 @@ async function importData(file){
     toast(`Restored ${logs.length} session${logs.length===1?"":"s"}${ws.length?` and ${ws.length} workout${ws.length===1?"":"s"}`:""}.`);closeSheet();render();
   }catch(_){S.importing=false;toast("Restore stopped partway. Try again; nothing is duplicated.")}
 }
-if(STANDALONE){document.documentElement.classList.add("standalone");try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}}
+if(STANDALONE){document.documentElement.classList.add("standalone");if(!window.CAC_AUTH)document.documentElement.classList.add("no-auth");try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}}
 async function saveBlob(blob,name,okMsg){
   let dl=null;try{dl=await window.claude?.use?.("downloads")}catch(_){}
   if(dl){try{await dl.save({filename:name,data:blob});toast(okMsg||"Saved.")}catch(e){if(e&&e.code==="declined")return;if(e&&e.code==="rate_limited")return toast("One moment, a save is already open.");fallbackDL(blob,name)}return}
@@ -2320,8 +2320,10 @@ function evRow(e,showGroup=true){
 }
 function eventTeaser(){const e=upcoming(1)[0];if(!e||evDate(e)-Date.now()>7*864e5)return "";return panel("teal","Next Group Event",`<div class="list">${evRow(e)}</div>`)}
 function groupsNotice(){if(!(!S.db||S.local))return "";
+  if(STANDALONE)return `<div class="gate-note"><b>Sign in to use Groups</b><span>Create a crew, join friends with an invite link, plan events and see each other's stats. Sign in with Google or your email; your workouts come with you.</span>${window.CAC_SIGNIN?`<button class="btn" data-signin="1" style="min-height:44px;justify-self:start">Sign in</button>`:""}</div>`;
   return `<div class="gate-note"><b>${!S.db?"Sign in to use Groups":"Want to join or start a group?"}</b><span>${!S.db?"Groups need a Claude sign-in. Your workouts and progress still save on this device.":"Claude only lets people the app owner has invited by email save shared data. Send the owner your email address and ask them to add you as an Editor. Your workouts and progress already save on this device."}</span>${S.db?`<button class="btn ghost" data-g="askjoin" style="min-height:40px;justify-self:start">Copy request message</button>`:""}</div>`}
 function viewGroups(){
+  if(STANDALONE&&(!S.db||S.local))return `<div class="stack">${groupsNotice()}</div>`;
   const mine=myGroups(),pub=S.groups.filter(g=>g.privacy==="public"&&!isMember(g)).sort((a,b)=>memberIds(b).length-memberIds(a).length);
   const actions=`<div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn go" data-g="create">+ Create Group</button><button class="btn ghost" data-g="code">Join with Code</button></div>`;
   const up=upcoming(6);

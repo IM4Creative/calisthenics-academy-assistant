@@ -16,13 +16,16 @@ from Safari. It works offline and saves your progress on the phone. No App Store
 
 Export a backup now and then; it's also how you move to a new phone.
 
-## Accounts (email + password)
-Signing in syncs your progress across devices and turns on Groups and shared athlete cards.
-Without an account the app still works and saves progress on the phone; Groups stay hidden.
+## Accounts (Google or email + password)
+Signing in syncs your progress across devices and turns on Groups (create a crew, invite links, events,
+each other's stats) and shared athlete cards. Without an account the app still works and saves progress
+on the phone; the Groups tab shows a Sign in button.
 
 ### One-time Firebase setup (free, about 5 minutes)
 1. Go to https://console.firebase.google.com → **Create a project** (Analytics not needed).
-2. **Build → Authentication → Get started → Sign-in method → Email/Password → Enable → Save.**
+2. **Build → Authentication → Get started → Sign-in method:**
+   - **Email/Password → Enable → Save.**
+   - **Add new provider → Google → Enable**, pick your support email → **Save.**
 3. **Authentication → Settings → Authorized domains → Add domain:** `im4creative.github.io`
 4. **Build → Firestore Database → Create database** → pick a location near you → **Start in production mode**.
 5. **Firestore → Rules:** replace everything with the contents of `firestore.rules` in this repo → **Publish**.
