@@ -5,7 +5,7 @@ so installed phones pick up the new version the next time the app opens online."
 import hashlib, pathlib, re
 root = pathlib.Path(__file__).parent
 src = (root / "src" / "coach.html").read_text(encoding="utf-8")
-ver = hashlib.sha1(src.encode()).hexdigest()[:10]
+ver = hashlib.sha1((src + "".join((root / f).read_text(encoding="utf-8") for f in ("auth.js", "firebase-config.js", "sw.template.js", "manifest.webmanifest"))).encode()).hexdigest()[:10]
 
 HEAD = """<!doctype html>
 <html lang="en">
