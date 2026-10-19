@@ -1062,6 +1062,41 @@ html.standalone,html.standalone body{-webkit-tap-highlight-color:transparent;-we
 .pod-bonus{font-weight:900;font-size:1.6rem;padding:6px 18px;border-radius:999px;background:var(--g-gold);color:#0F1113}
 .pod-ic{font-size:1.5rem;width:30px;text-align:center}
 .pod-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pod-row>span{display:grid;justify-items:center;padding:8px;border-radius:14px;background:var(--panel2)}.pod-row b{font-size:1.4rem;line-height:1}.pod-row .num{font-weight:900;font-size:1.1rem}.pod-row small{font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* timer: the wrappers are invisible in portrait; in landscape the timer sits left, the details and buttons right */
+.rm-a,.rm-big,.rm-b{display:contents}
+@media (orientation:landscape) and (max-height:600px){
+  #run:not(.run-done){display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"top top" "bar bar" "big a" "big b" "big ctl";column-gap:28px;row-gap:8px;
+    padding:max(10px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+  #run:not(.run-done) .run-main{display:contents}
+  #run:not(.run-done) .run-top{grid-area:top}
+  #run:not(.run-done) .run-bar{grid-area:bar;margin-top:2px}
+  #run:not(.run-done) .rm-big{grid-area:big;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0;text-align:center}
+  #run:not(.run-done) .rm-a{grid-area:a;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding-top:6px}
+  #run:not(.run-done) .rm-b{grid-area:b;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:0;overflow:hidden}
+  #run:not(.run-done) .run-ctl{grid-area:ctl;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+  #run:not(.run-done) .run-ctl .btn{min-height:54px;font-size:1rem}
+  #run .run-big{font-size:calc(min(44vh,20vw)*var(--bs,1))}
+  #run .run-ring{width:min(60vh,36vw)}
+  #run .run-ring .run-big{font-size:calc(min(24vh,11vw)*var(--bs,1))}
+  #run .run-prog{width:min(36vw,360px);height:10px}
+  #run .run-name{font-size:clamp(1.25rem,6vh,1.9rem);text-align:left}
+  #run .run-name .q-btn{width:36px;height:36px;font-size:1.1rem;margin-left:8px}
+  #run .run-phase{font-size:.72rem;padding:5px 14px}
+  #run .run-unit{font-size:.72rem}
+  #run .run-cue{font-size:.92rem;line-height:1.4;text-align:left;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+  #run .run-next{font-size:.9rem}
+  #run .run-dg{width:auto;height:min(30vh,140px);margin:0;padding:4px 6px}
+  #run .run-dg svg{height:100%;width:auto;max-width:100%}
+  #run .run-clock{font-size:1.2rem}
+  #run.run-done .run-main{justify-content:flex-start;gap:8px;overflow-y:auto;padding:4px 0}
+  #run.run-done .done-logo,#run.run-done .chevrow{display:none}
+  #run.run-done .run-name{font-size:1.4rem;text-align:center}
+  #run.run-done .run-big{font-size:min(20vh,4.5rem)}
+  #run.run-done .scale button{min-height:40px}
+  #run.run-done .run-ctl .btn{min-height:50px}
+}
 </style>
 
 <div class="wrap">
@@ -3178,15 +3213,15 @@ function drawRun(){
         :`<div class="run-tl"><button class="btn ghost" data-run="end" style="min-height:40px">End</button><button class="run-gear" data-run="tset" aria-label="Timer settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button></div><div style="text-align:right"><div class="run-clock num" id="runClock" aria-label="Total time">${clock(elapsed())}</div><div class="kicker">${tst?`${R.paused?"Paused":"For time"} · cap <span class="num">${clock(R.w.capSecs)}</span>`:`${R.paused?"Paused":"Total"} · <span class="num">${Math.max(R.i,1)} / ${R.ph.length-1}</span>`}</div></div>`}
     </div>
     <div class="run-bar">${bar}</div>
-    <div class="run-main">
-      ${R.diff!=="normal"?`<span class="diff-chip d-${diffOf(R.diff).k}">${diffOf(R.diff).n}</span>`:""}<span class="run-phase" style="background:${color}">${isReady?"Get Ready":isRest?"Rest":p.of>1?`Set ${p.set} of ${p.of}`:"Go"}</span>
+    <div class="run-main"><div class="rm-a">${R.diff!=="normal"?`<span class="diff-chip d-${diffOf(R.diff).k}">${diffOf(R.diff).n}</span>`:""}<span class="run-phase" style="background:${color}">${isReady?"Get Ready":isRest?"Rest":p.of>1?`Set ${p.set} of ${p.of}`:"Go"}</span>
       <div class="run-name">${esc(isReady?"First up: "+p.name:isRest?(nxt?"Next: "+nxt.name:"Last stretch"):p.name)}${(()=>{const im=isRest?(nxt&&nxt.move):p.move;return im?`<button class="q-btn" data-run="info" data-move="${esc(im.id)}" aria-label="How to do ${esc(im.name)}">?</button>`:""})()}</div>
-      ${bigHTML}
+</div>
+      <div class="rm-big">${bigHTML}
       <div class="run-unit">${p.secs?(R.wait?(isRest||isReady?"tap Next when ready":"time! tap Next"):R.paused?"paused":"seconds"):`reps · <span class="num" id="runSet">${clock(setElapsed())}</span> on this set`}</div>
-      ${tst?`<div class="rep-count"><b class="num">${repsDone}</b> / <span class="num">${R.w.reps}</span> reps done</div>`:""}
+      ${tst?`<div class="rep-count"><b class="num">${repsDone}</b> / <span class="num">${R.w.reps}</span> reps done</div>`:""}</div><div class="rm-b">
       ${(()=>{const dm=isRest?(nxt&&nxt.move):isReady?p.move:null;return dm&&DIAG.map[dm.id]?`<div class="run-dg">${moveDiagram(dm,"anim dgrun")}</div>`:""})()}
       ${!isRest&&!isReady&&p.move?`<div class="run-cue">${esc(p.move.breath)}</div>`:""}
-      ${!isRest&&!isReady&&nxt?`<div class="run-next">Then: ${esc(nxt.name)}</div>`:""}
+      ${!isRest&&!isReady&&nxt?`<div class="run-next">Then: ${esc(nxt.name)}</div>`:""}</div>
     </div>
     <div class="run-ctl">
       <button class="btn ghost" data-run="prev" ${R.i===0?"disabled":""}>Back</button>

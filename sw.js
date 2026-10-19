@@ -1,7 +1,7 @@
 /* Calisthenics Academy Coach: offline support. The app shell is cached so it opens with no signal;
    pages come from the network first so updates arrive, fonts are cached after first use. */
-const CACHE="cac-d8bed352dd";
-const SHELL=["./","./index.html","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./auth.js?v=d8bed352dd","./firebase-config.js?v=d8bed352dd"];
+const CACHE="cac-449a0a439c";
+const SHELL=["./","./index.html","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png","./auth.js?v=449a0a439c","./firebase-config.js?v=449a0a439c"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith("cac-")&&k!=="cac-fonts"&&k!=="cac-libs").map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
